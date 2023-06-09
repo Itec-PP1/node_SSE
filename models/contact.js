@@ -11,13 +11,18 @@ module.exports = (sequelize, DataTypes) => {
      */
     static associate(models) {
       // define association here
+      contact.belongsTo(models.users, {
+        foreignKey: 'userId',
+        onDelete: 'CASCADE'
+      });
     }
   }
   contact.init({
     name: DataTypes.STRING,
     phone: DataTypes.STRING,
     date: DataTypes.DATE,
-    favorites: DataTypes.BOOLEAN
+    favorites: DataTypes.BOOLEAN,
+    userId: DataTypes.INTEGER
   }, {
     sequelize,
     modelName: 'contacts',

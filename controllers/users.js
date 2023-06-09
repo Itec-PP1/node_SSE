@@ -1,3 +1,4 @@
+require('dotenv').config();
 const { users } = require('../models');
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
@@ -12,21 +13,17 @@ const setUsers = async (req, res) => {
     email,
     phone,
   } = req.body;
-  console.log(username)
 
   try {
-    // Validate user input
+
     if (!(firstname && lastname && username && password && born && email && phone)) {
       res.status(400).send("Todos los campos son requeridos");
     }
-    // check if user already exist
-    // Validate if user exist in our database
     const oldUser = await users.findOne({ where: { username } });
     if (oldUser) {
       return res.status(409).send("El usuario ya existe. Por favor inicie sesión");
     }
 
-    //Encrypt user password
     encryptedPassword = await bcrypt.hash(password, 10);
 
     await users.create(
@@ -36,7 +33,7 @@ const setUsers = async (req, res) => {
         username,
         password: encryptedPassword,
         born,
-        email: email.toLowerCase(), // sanitize: convert email to lowercase
+        email: email.toLowerCase(),
         phone,
       }
     )
@@ -81,6 +78,16 @@ const getUser = async (req, res) => {
 
 const deleteUsers = async (req, res) => {
   const id = req.params.id;
+  const token = req.headers.authorization.split(" ")[1];
+  const decoded = jwt.verify(token, process.env.JWT_KEY);
+  const user = await users.findByPk(decoded.user_id);
+
+  if (!user) {
+    return res.status(400).json({ error: "Usuario no logueado" });
+  }
+  if (user.id != 1) {
+    return res.status(400).json({ error: "No tiene permisos para eliminar este usuario" });
+  }
   const findUser = await users.findByPk(id);
   if (!findUser) {
     return res.json({
@@ -99,20 +106,15 @@ const deleteUsers = async (req, res) => {
 }
 
 const login = async (req, res) => {
-  // Our login logic starts here
   try {
-    // Get user input
     const { username, password } = req.body;
 
-    // Validate user input
     if (!(username && password)) {
       res.status(400).send("Todos los campos son requeridos");
     }
 
-    // Validate if user exist in our database
     const user = await users.findOne({ where: { username } });
     if (user && (await bcrypt.compare(password, user.password))) {
-      // Create token
       const token = jwt.sign(
         { user_id: user.id, username },
         process.env.JWT_KEY,

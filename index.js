@@ -1,10 +1,6 @@
 require('dotenv').config();
-const Sequelize = require("sequelize");
-// const config = require("./config");
 const bodyParser = require('body-parser');
 const express = require('express');
-
-// const sequelize = new Sequelize(config.development);
 
 const app = express();
 app.use(bodyParser.json());
