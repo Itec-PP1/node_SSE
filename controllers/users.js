@@ -76,6 +76,43 @@ const getUser = async (req, res) => {
   });
 }
 
+const updateUser = async (req, res) => {
+  const id = req.params.id;
+  const token = req.headers.authorization.split(" ")[1];
+  const decoded = jwt.verify(token, process.env.JWT_KEY);
+  const user = await users.findByPk(decoded.user_id);
+  
+  if (!user) {
+    return res.status(400).json({ error: "Usuario no logueado" });
+  }
+  const findUser = await users.findByPk(id);
+  if (!findUser) {
+    return res.status(404).json({
+      response: "Usuario no encontrado"
+    });
+  }
+  const data = req.body;
+
+  if (data.password){ 
+    encryptedPassword = await bcrypt.hash(data.password, 10);
+  } else {
+    encryptedPassword = findUser.password
+  }
+  data.password = encryptedPassword
+
+  await users.update(
+    data,
+    {
+      where: {
+        id: id
+      }
+    }
+  );
+  return res.json({
+    response: "Usuario actualizado"
+  });
+}
+
 const deleteUsers = async (req, res) => {
   const id = req.params.id;
   const token = req.headers.authorization.split(" ")[1];
@@ -85,16 +122,13 @@ const deleteUsers = async (req, res) => {
   if (!user) {
     return res.status(400).json({ error: "Usuario no logueado" });
   }
-  if (user.id != 1) {
-    return res.status(400).json({ error: "No tiene permisos para eliminar este usuario" });
-  }
   const findUser = await users.findByPk(id);
   if (!findUser) {
-    return res.json({
+    return res.status(404).json({
       response: "Usuario no encontrado"
     });
   }
-  const deleteUser = users.destroy({
+  users.destroy({
     where: {
       id: id
     }
@@ -133,10 +167,30 @@ const login = async (req, res) => {
   }
 }
 
+const logout = async (req, res) => {
+  try {
+    const token = req.headers.authorization.split(" ")[1];
+    const decoded = jwt.verify(token, process.env.JWT_KEY);
+    const user = await users.findByPk(decoded.user_id);
+    
+    if (!user) {
+      return res.status(400).json({ error: "Usuario no logueado" });
+    }
+
+    return res.json({
+      response: "Usuario deslogueado"
+    });
+  } catch (err) {
+    console.log(err);
+  }
+}
+
 module.exports = {
   setUsers,
   getAllUsers,
   getUser,
+  updateUser,
   deleteUsers,
-  login
+  login,
+  logout
 }

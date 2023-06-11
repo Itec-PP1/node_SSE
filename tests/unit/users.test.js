@@ -5,9 +5,13 @@ const {
   setUsers,
   getAllUsers,
   getUser,
+  updateUser,
   deleteUsers,
-  login
+  login,
+  logout,
 } = require("../../controllers/users");
+
+let token;
 
 // Test para la función setUsers
 describe("setUsers", () => {
@@ -34,6 +38,7 @@ describe("setUsers", () => {
       message: 'Usuario creado',
       token: expect.any(String)
     });
+    token = res.json.mock.calls[0][0].token;
   });
 
   it("should return an error if any required field is missing", async () => {
@@ -123,10 +128,33 @@ describe("login", () => {
 
 });
 
+// Test para la función logout
+describe("logout", () => {
+  it("should logout the user", async () => {
+    const req = {
+      headers: {
+        authorization: `Bearer ${token}`
+      }
+    };
+    const res = {
+      json: jest.fn()
+    };
+    users.findByPk = jest.fn().mockResolvedValue({ id: 1, username: "johndoe" });
+    await logout(req, res);
+    expect(res.json).toHaveBeenCalledWith({
+      response: 'Usuario deslogueado'
+    });
+  });
+});
+
 // Test para la función getAllUsers
 describe("getAllUsers", () => {
   it("should return all users", async () => {
-    const req = {};
+    const req = {
+      headers: {
+        authorization: `Bearer ${token}`
+      },
+    };
     const res = {
       json: jest.fn()
     };
@@ -144,6 +172,9 @@ describe("getAllUsers", () => {
 describe("getUser", () => {
   it("should return the user with the specified id", async () => {
     const req = {
+      headers: {
+        authorization: `Bearer ${token}`
+      },
       params: {
         id: 1
       }
@@ -161,6 +192,9 @@ describe("getUser", () => {
 
   it("should return an error if the user with the specified id is not found", async () => {
     const req = {
+      headers: {
+        authorization: `Bearer ${token}`
+      },
       params: {
         id: 1
       }
@@ -177,12 +211,18 @@ describe("getUser", () => {
   });
 });
 
-// Test para la función deleteUsers
-describe("deleteUsers", () => {
-  it("should delete the user with the specified id", async () => {
+// Test para la función updateUser
+describe("updateUser", () => {
+  it("should update the user with the specified id", async () => {
     const req = {
+      headers: {
+        authorization: `Bearer ${token}`
+      },
       params: {
         id: 1
+      },
+      body: {
+        username: "johndoe"
       }
     };
     const res = {
@@ -190,6 +230,60 @@ describe("deleteUsers", () => {
     };
     // Mock de la función findByPk() del modelo users para retornar un usuario existente
     users.findByPk = jest.fn().mockResolvedValue({ id: 1, username: "johndoe" });
+    // Mock de la función update() del modelo users
+    users.update = jest.fn().mockResolvedValue(1);
+    await updateUser(req, res);
+    expect(res.json).toHaveBeenCalledWith({
+      response: "Usuario actualizado"
+    });
+  });
+
+  it("should return an error if the user with the specified id is not found", async () => {
+    const req = {
+      headers: {
+        authorization: `Bearer ${token}`
+      },
+      params: {
+        id: 1
+      },
+      body: {
+        username: "johndoe"
+      }
+    };
+    const res = {
+      status: jest.fn().mockReturnThis(),
+      send: jest.fn(),
+      json: jest.fn()
+    };
+    // Mock de la función findByPk() del modelo users para retornar null
+    users.findByPk = jest.fn()
+      .mockResolvedValueOnce({ id: 1, username: "admin" })
+      .mockResolvedValueOnce(null);
+    await updateUser(req, res);
+    expect(res.status).toHaveBeenCalledWith(404);
+    expect(res.json).toHaveBeenCalledWith({
+      response: "Usuario no encontrado"
+    });
+  });
+});
+
+
+// Test para la función deleteUsers
+describe("deleteUsers", () => {
+  it("should delete the user with the specified id", async () => {
+    const req = {
+      headers: {
+        authorization: `Bearer ${token}`
+      },
+      params: {
+        id: 2
+      }
+    };
+    const res = {
+      json: jest.fn()
+    };
+    // Mock de la función findByPk() del modelo users para retornar un usuario existente
+    users.findByPk = jest.fn().mockResolvedValue({ id: 2, username: "johndoe" });
     // Mock de la función destroy() del modelo users
     users.destroy = jest.fn().mockResolvedValue(1);
     await deleteUsers(req, res);
@@ -200,16 +294,24 @@ describe("deleteUsers", () => {
 
   it("should return an error if the user with the specified id is not found", async () => {
     const req = {
+      headers: {
+        authorization: `Bearer ${token}`
+      },
       params: {
-        id: 1
+        id: 3
       }
     };
     const res = {
+      status: jest.fn().mockReturnThis(),
+      send: jest.fn(),
       json: jest.fn()
     };
     // Mock de la función findByPk() del modelo users para retornar null
-    users.findByPk = jest.fn().mockResolvedValue(null);
+    users.findByPk = jest.fn()
+      .mockResolvedValueOnce({ id: 1, username: "admin" })
+      .mockResolvedValueOnce(null);
     await deleteUsers(req, res);
+    expect(res.status).toHaveBeenCalledWith(404);
     expect(res.json).toHaveBeenCalledWith({
       response: "Usuario no encontrado"
     });

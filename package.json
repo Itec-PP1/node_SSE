@@ -6,10 +6,11 @@
   "scripts": {
     "start": "node index.js",
     "dev": "nodemon index.js",
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "node scripts/db/create.js && node scripts/db/migrate.js && node scripts/db/seed.js && npx jest --watchAll && node scripts/db/delete.js",
     "create-db": "npx sequelize-cli db:create",
     "migrate-db": "npx sequelize-cli db:migrate",
-    "seed-db": "npx sequelize-cli db:seed:all"
+    "seed-db": "npx sequelize-cli db:seed:all",
+    "run-db": "npm run create-db && npm run migrate-db && npm run seed-db"
   },
   "author": "",
   "license": "ISC",
